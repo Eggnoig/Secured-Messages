@@ -40,6 +40,21 @@ def caesar_cipher(text, key, encode=True):
 
     return "".join(shift_character(character, shift) for character in text)
 
+# Standrd Hill Chiper- JH
+#Convert letters to numbers
+def character_to_number(c):
+    #c.upper makes the charcater upper case. The - ord('A')subtracts 65 becuase ord turns 
+    #a chracter into its ASCII number.
+    #This makes no input no matter what into its number place from 0 - 25.
+    #"A" = 0, "B" = 1, etc.
+    return ord(c.upper()) - ord('A')
+#Convert numbers to letters
+def number_to_character(n):
+    #This allows to convert back to ASCII
+    #chr() converts an ASCII number back into a character. 65 = A, 66 = B, etc.
+    return chr((n % ALPHABET_SIZE) + ord('A'))
+def hill_cipher (message, hillKey):
+    return "".join()
 
 # Class Handles UI/User Interaction
 class SecuredMessagesWindow:
