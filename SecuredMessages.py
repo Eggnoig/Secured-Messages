@@ -41,6 +41,7 @@ def caesar_cipher(text, key, encode=True):
     return "".join(shift_character(character, shift) for character in text)
 
 # Standrd Hill Chiper- JH
+#Message = user input. Key = what is being used to encyrpt/ to make the matrix
 #Convert letters to numbers
 def character_to_number(c):
     #c.upper makes the charcater upper case. The - ord('A')subtracts 65 becuase ord turns 
@@ -53,8 +54,38 @@ def number_to_character(n):
     #This allows to convert back to ASCII
     #chr() converts an ASCII number back into a character. 65 = A, 66 = B, etc.
     return chr((n % ALPHABET_SIZE) + ord('A'))
+#Build key matrix
+def key_matrix(key):
+    matrix = [[0 for _ in range(3)] for _ in range(3)]
+    k = 0
+    for i in range(3):
+        for j in range(3):
+            matrix[i][j] = character_to_number(key[k])
+            k += 1
+    return matrix
+#Hill cipher math for matrix
+def multiply(matrix, vector):
+    result = [0, 0, 0]
+    for i in range(3):
+        total = 0
+        for j in range(3):
+            total += matrix[i][j] * vector[j]
+    return result
+#Encryption
+def hill_encryption(block, key_matrix):
+    vector = [character_to_number(c) for c in block]
+    encryption = multiply(key_matrix, vector)
+    return "".join(number_to_character(x) for x in encryption)
+#Hill cipher main function
 def hill_cipher (message, hillKey):
-    return "".join()
+    message = message.upper().replace(" ", "")
+    key_matrix = build_key_matrix(key)
+    ciphertext = ""
+    for i in range(0, len(message), 3):
+        block = message [i:i+3]
+        ciphertext += hill_encryption(block, key_matrix)
+    return ciphertext
+
 
 # Class Handles UI/User Interaction
 class SecuredMessagesWindow:
