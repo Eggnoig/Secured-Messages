@@ -41,7 +41,7 @@ def caesar_cipher(text, key, encode=True):
     return "".join(shift_character(character, shift) for character in text)
 
 # Standrd Hill Chiper- JH
-#Message = user input. Key = what is being used to encyrpt/ to make the matrix
+#Message = user input. hillKey = what is being used to encyrpt/ to make the matrix
 #Convert letters to numbers
 def character_to_number(c):
     #c.upper makes the charcater upper case. The - ord('A')subtracts 65 becuase ord turns 
@@ -54,6 +54,23 @@ def number_to_character(n):
     #This allows to convert back to ASCII
     #chr() converts an ASCII number back into a character. 65 = A, 66 = B, etc.
     return chr((n % ALPHABET_SIZE) + ord('A'))
+#Gcd math to help with invertibility check
+def gcd(a, b):
+    while b != 0:
+        a, b = b, a % b
+    return abs(a)
+#Determinant of 3 x 3 matrix
+def determinant(m):
+    return (
+        m[0][0] * (m[1][1]*m[2][2] - m[1][2]*m[2][1])
+        - m[0][1] * (m[1][0]*m[2][2] - m[1][2]*m[2][0]) 
+        + m[0][2] * (m[1][0]*m[2][1] - m[1][1]*m[2][0])
+    )
+#Function to check if key is valid
+def is_key_matrix_invertiable(matrix):
+    det = determinant(matrix)
+    det_modulo = det % ALPHABET_SIZE
+    return gcd(det_modulo, ALPHABET_SIZE) == 1
 #Build key matrix
 def key_matrix(key):
     matrix = [[0 for _ in range(3)] for _ in range(3)]
@@ -63,7 +80,7 @@ def key_matrix(key):
             matrix[i][j] = character_to_number(key[k])
             k += 1
     return matrix
-#Hill cipher math for matrix
+#Hill cipher math for matrix (matrix x vector)
 def multiply(matrix, vector):
     result = [0, 0, 0]
     for i in range(3):
@@ -79,11 +96,12 @@ def hill_encryption(block, key_matrix):
 #Hill cipher main function
 def hill_cipher (message, hillKey):
     message = message.upper().replace(" ", "")
-    key_matrix = build_key_matrix(key)
+    key_matrix = build_key_matrix(hillKey)
     ciphertext = ""
     for i in range(0, len(message), 3):
         block = message [i:i+3]
         ciphertext += hill_encryption(block, key_matrix)
+    result = hill_encryption(message, hillKey)
     return ciphertext
 
 
