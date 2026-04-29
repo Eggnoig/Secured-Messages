@@ -14,6 +14,10 @@ from PySide6.QtWidgets import (
     QRadioButton,
     QTextEdit,
 )
+#DES imports
+from Crypto.Cipher import DES
+from Crypto.Util.Padding import pad, unpad
+import base64
 
 ALPHABET_SIZE = 26 #Used for Wrapping Shifts
 
@@ -107,7 +111,39 @@ def hill_cipher (message, hillKey):
         ciphertext += hill_encryption(block, km)
     return ciphertext
 
+#DES algorithm- JH
+#install pycrptodome
+#DES key has to be 8 bytes so we use an 8 letter word
+DES_Key = b"Appendix"
 
+#DES Encryption
+#plaintext: str -> str can be removed if it is already stated
+#that the user input is a string. Just put that variable there
+def DES_Encryption(plaintext: str) -> str:
+    #convert string to bytes (since DES only works with bytes)
+    #utf-8 allows to convert strings to bytes
+    bytes = plaintext.encode("utf-8")
+    #Pad user input to a multiple of 8 bytes
+    padded_bytes = pad(bytes, DES.block_size)
+    #This creaates a new DES cipher
+    DES_Algorithm = DES.new(DES_Key, DES.MODE_CBC)
+    ciphertext = DES_Algorithm.encrypt(padded_bytes)
+    DES_Result = base64.b64encode(DES_Algorithm.iv + ciphertext).decode("utf-8")
+    return DES_Result
+#DES Decryption
+def DES_Decryption(encoded_ciphertext: str) -> str:
+    #First need to decode from base64 back to the raw bytes
+    #This is becuase DES works with raw bytes
+    raw_bytes = base64.b64decode(encoded_ciphertext)
+    #Now need to work with IV that was stored during encryption
+    iv = raw_bytes[:8]
+    ciphertext = raw_bytes [8:]
+    #Do the same algorithm from encryption with the same key and iv
+    DES_Algorithm = DES.new(DES_Key, DES.MODE_CBC, iv=iv)
+    #Decrypts and removes the padding to get the original plaintext back
+    plaintext = unpad(DES_Algorithm.decrypt(ciphertext), DES.block_size)
+    #Decode the utf-8 from bytes back to characters
+    return plaintext.decode("utf-8")
 # Class Handles UI/User Interaction
 class SecuredMessagesWindow:
     def __init__(self):
