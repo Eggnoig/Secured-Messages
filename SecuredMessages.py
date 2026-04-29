@@ -1,22 +1,31 @@
 import sys
-from pathlib import Path
+from pathlib import Path #Used for .ui
 
+# PySide6 imports
 from PySide6.QtCore import QFile
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
     QComboBox,
+    QGroupBox,
     QLabel,
     QLineEdit,
     QMessageBox,
     QPushButton,
     QRadioButton,
+    QTableWidget,
+    QTableWidgetItem,
     QTextEdit,
 )
 #DES imports
-from Crypto.Cipher import DES
-from Crypto.Util.Padding import pad, unpad
+try:
+    from Crypto.Cipher import DES
+    from Crypto.Util.Padding import pad, unpad
+except ModuleNotFoundError:
+    DES = None
+    pad = None
+    unpad = None
 import base64
 
 ALPHABET_SIZE = 26 #Used for Wrapping Shifts
@@ -84,6 +93,7 @@ def key_matrix(key):
             matrix[i][j] = character_to_number(key[k])
             k += 1
     return matrix
+
 #Hill cipher math for matrix (matrix x vector)
 def multiply(matrix, vector):
     result = [0, 0, 0]
@@ -93,11 +103,13 @@ def multiply(matrix, vector):
             total += matrix[i][j] * vector[j]
         result[i] = total % ALPHABET_SIZE
     return result
+
 #Encryption
 def hill_encryption(block, key_matrix):
     vector = [character_to_number(c) for c in block]
     encryption = multiply(key_matrix, vector)
     return "".join(number_to_character(x) for x in encryption)
+
 #Hill cipher main function
 def hill_cipher (message, hill_key):
     message = message.upper().replace(" ", "")
@@ -113,13 +125,27 @@ def hill_cipher (message, hill_key):
 
 #DES algorithm- JH
 #install pycrptodome
-#DES key has to be 8 bytes so we use an 8 letter word
-des_key = b"Appendix"
+#DES key has to be 8 bytes
+def prepare_des_key(key: str):
+    if not isinstance(key, str):
+        raise TypeError("DES key must be a string.")
+
+    if len(key) > 8:
+        raise ValueError("DES key must be 8 characters or fewer.")
+
+    padded_key = key.ljust(8)
+    des_key = padded_key.encode("utf-8")
+
+    if len(des_key) != 8:
+        raise ValueError("DES key must use single-byte characters only.")
+
+    return des_key, padded_key != key
+
 
 #DES Encryption
 #plaintext: str -> str can be removed if it is already a string
 #that the user input is a string. Just put that variable there
-def des_encryption(plaintext: str) -> str:
+def des_encryption(plaintext: str, des_key: bytes) -> str:
     #input validation
     if not isinstance(plaintext, str):
         raise TypeError("Input must be a string.")
@@ -130,8 +156,9 @@ def des_encryption(plaintext: str) -> str:
     des_algorithm = DES.new(des_key, DES.MODE_CBC)
     ciphertext = des_algorithm.encrypt(padded_bytes)
     return base64.b64encode(des_algorithm.iv + ciphertext).decode("utf-8")
+
 #DES Decryption
-def des_decryption(encoded_ciphertext: str) -> str:
+def des_decryption(encoded_ciphertext: str, des_key: bytes) -> str:
     #First need to decode from base64 back to the raw bytes
     raw_bytes = base64.b64decode(encoded_ciphertext)
     #First 8 bytes are the IV
@@ -140,15 +167,48 @@ def des_decryption(encoded_ciphertext: str) -> str:
     des_algorithm = DES.new(des_key, DES.MODE_CBC, iv=iv)
     plaintext = unpad(des_algorithm.decrypt(ciphertext), DES.block_size)
     return plaintext.decode("utf-8")
+
+def hill_cipher_ui(message, matrix, encode=True):
+    if not encode:
+        raise ValueError("Hill Cipher decode is not implemented yet.")
+
+    if len(matrix) != 3 or any(len(row) != 3 for row in matrix):
+        raise ValueError("Hill Cipher requires a 3 x 3 key matrix.")
+
+    key_characters = []
+
+    for row in matrix:
+        for value in row:
+            if value < 0 or value >= ALPHABET_SIZE:
+                raise ValueError("Hill Cipher matrix values must be between 0 and 25.")
+            key_characters.append(number_to_character(value))
+
+    return hill_cipher(message, "".join(key_characters))
+def des_cipher(message, key, encode=True):
+    if DES is None:
+        raise ValueError("DES support requires installing pycryptodome.")
+
+    des_key, _ = prepare_des_key(key)
+
+    try:
+        if encode:
+            return des_encryption(message, des_key)
+
+        return des_decryption(message, des_key)
+    except (ValueError, TypeError) as exc:
+        raise ValueError(str(exc)) from exc
 # Class Handles UI/User Interaction
 class SecuredMessagesWindow:
     def __init__(self):
         self.ciphers = {
             "Caesar Shift": caesar_cipher,
+            "Hill Cipher": hill_cipher_ui,
+            "DES": des_cipher,
         }
 
         self.window = self.load_ui()
-        #Buttons need to be in a button group to work as radio buttons, but we don't need to do anything with the group itself
+        #Buttons need to be in a button group to work as radio buttons, 
+        # but we don't need to do anything with the group itself
         self.mode_buttons = QButtonGroup(self.window)
         self.encode_radio = self.find_widget(QRadioButton, "encode_radio")
         self.decode_radio = self.find_widget(QRadioButton, "decode_radio")
@@ -162,6 +222,9 @@ class SecuredMessagesWindow:
 
         self.key_input = self.find_widget(QLineEdit, "key_input")
         self.key_hint = self.find_widget(QLabel, "key_hint") #Tells you how to use the key field for the selected cipher
+        self.matrix_group = self.find_widget(QGroupBox, "matrix_group")
+        self.matrix_hint = self.find_widget(QLabel, "matrix_hint")
+        self.matrix_table = self.find_widget(QTableWidget, "matrix_table")
 
         self.message_input = self.find_widget(QTextEdit, "message_input")
         self.output_text = self.find_widget(QTextEdit, "output_text")
@@ -179,6 +242,7 @@ class SecuredMessagesWindow:
         self.copy_button = self.find_widget(QPushButton, "copy_button")
         self.copy_button.clicked.connect(self.copy_output)
 
+        self.initialize_matrix_table()
         self.update_key_field(self.cipher_combo.currentText())
 
 # Loads UI from .ui file and returns the main window widget
@@ -197,7 +261,7 @@ class SecuredMessagesWindow:
             raise RuntimeError(loader.errorString())
 
         return window
-
+    #Helper function to find widgets by type and name, with error handling
     def find_widget(self, widget_type, object_name):
         widget = self.window.findChild(widget_type, object_name)
 
@@ -208,20 +272,76 @@ class SecuredMessagesWindow:
 
     def show(self):
         self.window.show()
+# Initializes the 3 x 3 matrix table with default values (1s on the diagonal, 0s elsewhere)
+    def initialize_matrix_table(self):
+        self.matrix_table.setRowCount(3)
+        self.matrix_table.setColumnCount(3)
 
-    def update_key_field(self, _cipher_name):
-        self.key_input.setEnabled(True)
-        self.key_input.setPlaceholderText("Example: 3") #Hints for Cipher
-        self.key_hint.setText("Use a whole number for the Caesar shift.") #Hints for Cipher
+        for row_index in range(3):
+            for column_index in range(3):
+                cell_value = "1" if row_index == column_index else "0"
+                self.matrix_table.setItem(row_index, column_index, QTableWidgetItem(cell_value))
 
+    def read_matrix_values(self):
+        matrix = []
+
+        for row_index in range(self.matrix_table.rowCount()):
+            row_values = []
+
+            for column_index in range(self.matrix_table.columnCount()):
+                item = self.matrix_table.item(row_index, column_index)
+                cell_text = item.text().strip() if item is not None else ""
+
+                if not cell_text:
+                    raise ValueError(
+                        f"Matrix cell R{row_index + 1}, C{column_index + 1} is empty."
+                    )
+
+                try:
+                    row_values.append(int(cell_text))
+                except ValueError as exc:
+                    raise ValueError(
+                        f"Matrix cell R{row_index + 1}, C{column_index + 1} must be a whole number."
+                    ) from exc
+
+            matrix.append(row_values)
+
+        return matrix
+
+#Updates the key input field and hints based on the selected cipher. 
+# Shows the matrix group for Hill Cipher and hides it for others.
+    def update_key_field(self, cipher_name):
+        self.matrix_group.setVisible(cipher_name == "Hill Cipher")
+
+        if cipher_name == "Caesar Shift":
+            self.key_input.setEnabled(True)
+            self.key_input.setPlaceholderText("Example: 3") #Hints for Cipher
+            self.key_hint.setText("Use a whole number for the Caesar shift.") #Hints for Cipher
+            self.matrix_hint.setText("Enter Hill Cipher matrix values from 0 to 25.")
+        elif cipher_name == "Hill Cipher":
+            self.key_input.setEnabled(False)
+            self.key_input.setPlaceholderText("Matrix-based cipher") #Hints for Cipher
+            self.key_hint.setText("Use the 3 x 3 matrix below for the Hill Cipher key.") #Hints for Cipher
+            self.matrix_hint.setText("Enter Hill Cipher matrix values from 0 to 25.")
+        else:
+            self.key_input.setEnabled(True)
+            self.key_input.setPlaceholderText("Up to 8 characters") #Hints for Cipher
+            self.key_hint.setText("DES uses up to 8 characters. Short keys are padded to 8.") #Hints for Cipher
+
+#
     def convert_message(self):
         cipher_name = self.cipher_combo.currentText()
         cipher = self.ciphers[cipher_name]
         message = self.message_input.toPlainText()
         key = self.key_input.text()
         encode = self.encode_radio.isChecked()
+        des_key_was_padded = False
 
         try:
+            if cipher_name == "Hill Cipher":
+                key = self.read_matrix_values()
+            elif cipher_name == "DES":
+                _, des_key_was_padded = prepare_des_key(key)
             converted_message = cipher(message, key, encode)
         except ValueError as exc:
             QMessageBox.warning(self.window, "Check your key", str(exc))
@@ -230,7 +350,10 @@ class SecuredMessagesWindow:
 
         self.output_text.setPlainText(converted_message)
         action = "Encoded" if encode else "Decoded"
-        self.status_label.setText(f"{action} with {cipher_name}.")
+        if cipher_name == "DES" and des_key_was_padded:
+            self.status_label.setText(f"{action} with {cipher_name}. Key padded to 8 characters.")
+        else:
+            self.status_label.setText(f"{action} with {cipher_name}.")
 
     def swap_text(self): #Swaps output and Input
         self.message_input.setPlainText(self.output_text.toPlainText())
