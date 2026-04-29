@@ -87,6 +87,7 @@ def multiply(matrix, vector):
         total = 0
         for j in range(3):
             total += matrix[i][j] * vector[j]
+        result[i] = total % ALPHABET_SIZE
     return result
 #Encryption
 def hill_encryption(block, key_matrix):
@@ -96,12 +97,14 @@ def hill_encryption(block, key_matrix):
 #Hill cipher main function
 def hill_cipher (message, hillKey):
     message = message.upper().replace(" ", "")
-    key_matrix = build_key_matrix(hillKey)
+    km = key_matrix(hillKey)
+    if not is_key_matrix_invertiable(km):
+        raise ValueError("Key matrix is not invertible, choose a different key.")
     ciphertext = ""
+    while len(message) % 3 != 0: message += 'X'
     for i in range(0, len(message), 3):
         block = message [i:i+3]
-        ciphertext += hill_encryption(block, key_matrix)
-    result = hill_encryption(message, hillKey)
+        ciphertext += hill_encryption(block, km)
     return ciphertext
 
 
