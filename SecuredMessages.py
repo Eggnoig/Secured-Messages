@@ -99,9 +99,9 @@ def hill_encryption(block, key_matrix):
     encryption = multiply(key_matrix, vector)
     return "".join(number_to_character(x) for x in encryption)
 #Hill cipher main function
-def hill_cipher (message, hillKey):
+def hill_cipher (message, hill_key):
     message = message.upper().replace(" ", "")
-    km = key_matrix(hillKey)
+    km = key_matrix(hill_key)
     if not is_key_matrix_invertiable(km):
         raise ValueError("Key matrix is not invertible, choose a different key.")
     ciphertext = ""
@@ -114,35 +114,31 @@ def hill_cipher (message, hillKey):
 #DES algorithm- JH
 #install pycrptodome
 #DES key has to be 8 bytes so we use an 8 letter word
-DES_Key = b"Appendix"
+des_key = b"Appendix"
 
 #DES Encryption
-#plaintext: str -> str can be removed if it is already stated
+#plaintext: str -> str can be removed if it is already a string
 #that the user input is a string. Just put that variable there
-def DES_Encryption(plaintext: str) -> str:
+def des_encryption(plaintext: str) -> str:
+    #input validation
+    if not isinstance(plaintext, str):
+        raise TypeError("Input must be a string.")
     #convert string to bytes (since DES only works with bytes)
-    #utf-8 allows to convert strings to bytes
     bytes = plaintext.encode("utf-8")
     #Pad user input to a multiple of 8 bytes
     padded_bytes = pad(bytes, DES.block_size)
-    #This creaates a new DES cipher
-    DES_Algorithm = DES.new(DES_Key, DES.MODE_CBC)
-    ciphertext = DES_Algorithm.encrypt(padded_bytes)
-    DES_Result = base64.b64encode(DES_Algorithm.iv + ciphertext).decode("utf-8")
-    return DES_Result
+    des_algorithm = DES.new(des_key, DES.MODE_CBC)
+    ciphertext = des_algorithm.encrypt(padded_bytes)
+    return base64.b64encode(des_algorithm.iv + ciphertext).decode("utf-8")
 #DES Decryption
-def DES_Decryption(encoded_ciphertext: str) -> str:
+def des_decryption(encoded_ciphertext: str) -> str:
     #First need to decode from base64 back to the raw bytes
-    #This is becuase DES works with raw bytes
     raw_bytes = base64.b64decode(encoded_ciphertext)
-    #Now need to work with IV that was stored during encryption
+    #First 8 bytes are the IV
     iv = raw_bytes[:8]
     ciphertext = raw_bytes [8:]
-    #Do the same algorithm from encryption with the same key and iv
-    DES_Algorithm = DES.new(DES_Key, DES.MODE_CBC, iv=iv)
-    #Decrypts and removes the padding to get the original plaintext back
-    plaintext = unpad(DES_Algorithm.decrypt(ciphertext), DES.block_size)
-    #Decode the utf-8 from bytes back to characters
+    des_algorithm = DES.new(des_key, DES.MODE_CBC, iv=iv)
+    plaintext = unpad(des_algorithm.decrypt(ciphertext), DES.block_size)
     return plaintext.decode("utf-8")
 # Class Handles UI/User Interaction
 class SecuredMessagesWindow:
