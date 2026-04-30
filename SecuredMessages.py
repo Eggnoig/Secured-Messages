@@ -154,18 +154,22 @@ def des_encryption(plaintext: str, des_key: bytes) -> str:
     #Pad user input to a multiple of 8 bytes
     padded_bytes = pad(bytes, DES.block_size)
     des_algorithm = DES.new(des_key, DES.MODE_CBC)
+    #Convert the message to bytes and pad it
+    #DES requires data to be in multiple of 8 bytes to work
     ciphertext = des_algorithm.encrypt(padded_bytes)
+    #We add the IV to the ciphertext so that we can decode later
+    #It is base64 encoded so it is a clean string for UI
     return base64.b64encode(des_algorithm.iv + ciphertext).decode("utf-8")
 
 #DES Decryption
 def des_decryption(encoded_ciphertext: str, des_key: bytes) -> str:
     #First need to decode from base64 back to the raw bytes
     raw_bytes = base64.b64decode(encoded_ciphertext)
-    #First 8 bytes are the IV
-    iv = raw_bytes[:8]
-    ciphertext = raw_bytes [8:]
-    des_algorithm = DES.new(des_key, DES.MODE_CBC, iv=iv)
-    plaintext = unpad(des_algorithm.decrypt(ciphertext), DES.block_size)
+    #Extract IV (first 8 bytes)
+    #The rest of the raw_bytes (from index 8) is the message
+    des_algorithm = DES.new(des_key, DES.MODE_CBC, iv=raw_bytes[:8])
+    #Decrypt the cipherttext and take out the padding to get the original message
+    plaintext = unpad(des_algorithm.decrypt(raw_bytes[8:]), DES.block_size)
     return plaintext.decode("utf-8")
 
 def hill_cipher_ui(message, matrix, encode=True):
