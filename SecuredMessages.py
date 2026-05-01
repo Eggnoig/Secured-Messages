@@ -172,22 +172,19 @@ def des_decryption(encoded_ciphertext: str, des_key: bytes) -> str:
     plaintext = unpad(des_algorithm.decrypt(raw_bytes[8:]), DES.block_size)
     return plaintext.decode("utf-8")
 
-def hill_cipher_ui(message, matrix, encode=True):
+def hill_cipher_ui(message, hill_key, encode=True):
     if not encode:
         raise ValueError("Hill Cipher decode is not implemented yet.")
 
-    if len(matrix) != 3 or any(len(row) != 3 for row in matrix):
-        raise ValueError("Hill Cipher requires a 3 x 3 key matrix.")
+    hill_key = hill_key.upper().replace(" ", "")
 
-    key_characters = []
+    if len(hill_key) != 9:
+        raise ValueError("Hill Cipher requires a 9-letter keyword for the 3 x 3 key matrix.")
 
-    for row in matrix:
-        for value in row:
-            if value < 0 or value >= ALPHABET_SIZE:
-                raise ValueError("Hill Cipher matrix values must be between 0 and 25.")
-            key_characters.append(number_to_character(value))
+    if not hill_key.isalpha():
+        raise ValueError("Hill Cipher keyword must contain letters only.")
 
-    return hill_cipher(message, "".join(key_characters))
+    return hill_cipher(message, hill_key)
 def des_cipher(message, key, encode=True):
     if DES is None:
         raise ValueError("DES support requires installing pycryptodome.")
@@ -315,7 +312,7 @@ class SecuredMessagesWindow:
 #Updates the key input field and hints based on the selected cipher. 
 # Shows the matrix group for Hill Cipher and hides it for others.
     def update_key_field(self, cipher_name):
-        self.matrix_group.setVisible(cipher_name == "Hill Cipher")
+        self.matrix_group.setVisible(False)
 
         if cipher_name == "Caesar Shift":
             self.key_input.setEnabled(True)
@@ -323,9 +320,9 @@ class SecuredMessagesWindow:
             self.key_hint.setText("Use a whole number for the Caesar shift.") #Hints for Cipher
             self.matrix_hint.setText("Enter Hill Cipher matrix values from 0 to 25.")
         elif cipher_name == "Hill Cipher":
-            self.key_input.setEnabled(False)
-            self.key_input.setPlaceholderText("Matrix-based cipher") #Hints for Cipher
-            self.key_hint.setText("Use the 3 x 3 matrix below for the Hill Cipher key.") #Hints for Cipher
+            self.key_input.setEnabled(True)
+            self.key_input.setPlaceholderText("Example: GYBNQKURP") #Hints for Cipher
+            self.key_hint.setText("Use a 9-letter keyword to build the 3 x 3 Hill Cipher key matrix.") #Hints for Cipher
             self.matrix_hint.setText("Enter Hill Cipher matrix values from 0 to 25.")
         else:
             self.key_input.setEnabled(True)
@@ -342,9 +339,7 @@ class SecuredMessagesWindow:
         des_key_was_padded = False
 
         try:
-            if cipher_name == "Hill Cipher":
-                key = self.read_matrix_values()
-            elif cipher_name == "DES":
+            if cipher_name == "DES":
                 _, des_key_was_padded = prepare_des_key(key)
             converted_message = cipher(message, key, encode)
         except ValueError as exc:
