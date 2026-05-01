@@ -264,10 +264,6 @@ class SecuredMessagesWindow:
 
         self.key_input = self.find_widget(QLineEdit, "key_input")
         self.key_hint = self.find_widget(QLabel, "key_hint") #Tells you how to use the key field for the selected cipher
-        self.matrix_group = self.find_widget(QGroupBox, "matrix_group")
-        self.matrix_hint = self.find_widget(QLabel, "matrix_hint")
-        self.matrix_table = self.find_widget(QTableWidget, "matrix_table")
-
         self.message_input = self.find_widget(QTextEdit, "message_input")
         self.output_text = self.find_widget(QTextEdit, "output_text")
         self.status_label = self.find_widget(QLabel, "status_label")
@@ -284,7 +280,7 @@ class SecuredMessagesWindow:
         self.copy_button = self.find_widget(QPushButton, "copy_button")
         self.copy_button.clicked.connect(self.copy_output)
 
-        self.initialize_matrix_table()
+        # self.initialize_matrix_table()
         self.update_key_field(self.cipher_combo.currentText())
 
 # Loads UI from .ui file and returns the main window widget
@@ -314,63 +310,27 @@ class SecuredMessagesWindow:
 
     def show(self):
         self.window.show()
-# Initializes the 3 x 3 matrix table with default values (1s on the diagonal, 0s elsewhere)
-    def initialize_matrix_table(self):
-        self.matrix_table.setRowCount(3)
-        self.matrix_table.setColumnCount(3)
-
-        for row_index in range(3):
-            for column_index in range(3):
-                cell_value = "1" if row_index == column_index else "0"
-                self.matrix_table.setItem(row_index, column_index, QTableWidgetItem(cell_value))
-
-    def read_matrix_values(self):
-        matrix = []
-
-        for row_index in range(self.matrix_table.rowCount()):
-            row_values = []
-
-            for column_index in range(self.matrix_table.columnCount()):
-                item = self.matrix_table.item(row_index, column_index)
-                cell_text = item.text().strip() if item is not None else ""
-
-                if not cell_text:
-                    raise ValueError(
-                        f"Matrix cell R{row_index + 1}, C{column_index + 1} is empty."
-                    )
-
-                try:
-                    row_values.append(int(cell_text))
-                except ValueError as exc:
-                    raise ValueError(
-                        f"Matrix cell R{row_index + 1}, C{column_index + 1} must be a whole number."
-                    ) from exc
-
-            matrix.append(row_values)
-
-        return matrix
 
 #Updates the key input field and hints based on the selected cipher. 
 # Shows the matrix group for Hill Cipher and hides it for others.
     def update_key_field(self, cipher_name):
-        self.matrix_group.setVisible(False)
 
         if cipher_name == "Caesar Shift":
             self.key_input.setEnabled(True)
             self.key_input.setPlaceholderText("Example: 3") #Hints for Cipher
             self.key_hint.setText("Use a whole number for the Caesar shift.") #Hints for Cipher
-            self.matrix_hint.setText("Enter Hill Cipher matrix values from 0 to 25.")
+            
         elif cipher_name == "Hill Cipher":
             self.key_input.setEnabled(True)
             self.key_input.setPlaceholderText("Example: GYBNQKURP") #Hints for Cipher
             self.key_hint.setText("Use a 9-letter keyword to build the 3 x 3 Hill Cipher key matrix.") #Hints for Cipher
-            self.matrix_hint.setText("Enter Hill Cipher matrix values from 0 to 25.")
+        
         else:
             self.key_input.setEnabled(True)
             self.key_input.setPlaceholderText("Up to 8 characters") #Hints for Cipher
             self.key_hint.setText("DES uses up to 8 characters. Short keys are padded to 8.") #Hints for Cipher
 
-#
+
     def convert_message(self):
         cipher_name = self.cipher_combo.currentText()
         cipher = self.ciphers[cipher_name]
