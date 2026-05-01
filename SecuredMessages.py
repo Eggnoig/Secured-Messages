@@ -109,7 +109,47 @@ def hill_encryption(block, key_matrix):
     vector = [character_to_number(c) for c in block]
     encryption = multiply(key_matrix, vector)
     return "".join(number_to_character(x) for x in encryption)
-
+#Decryption
+#matirx math for inverstion
+def minor(m, row, col):
+    sub_m = [
+        [m[i][j] for j in range(3) if j != col]
+        for i in range(3) if i != row
+    ]
+    #2x2 determinant math
+    return sub_m[0][0] * sub_m[1][1] - sub_m[0][1] * sub_m[1][0]
+#Finds a number that when multiplied by b gives 1 mod m, neeeded to undo the determinant in moduar math
+def mod_inverse(b, m):
+    b = b % m
+    for x in range(1, m):
+        if (b * x) % m == 1:
+            return x
+    return None
+#Builds inverse of key matrix for decryption
+def invert_key_matrix(m):
+    det = determinant(m) % ALPHABET_SIZE
+    det_invert = mod_inverse(det, ALPHABET_SIZE)
+    if det_invert is None:
+        raise ValueError("Key matrix has no modular inverse.")
+    #Start with empty 3 x 3 matrix
+    inverse = [[0]*3 for _ in range(3)]
+    for i in range(3):
+        for j in range(3):
+            sign = (-1) ** (i +j)
+            inverse[j][i] = (det_invert * sign * minor(m, i, j)) % ALPHABET_SIZE
+    return inverse
+#Same as decrypt but with inverse key
+def hill_decryption(ciphertext, hillKey):
+    ciphertext = ciphertext.upper().replace(" ", "")
+    km = key_matrix(hillKey)
+    if not is_key_matrix_invertiable(km):
+        raise ValueError("Key is not invertible, choose a different key ")
+    inverse_km = invert_key_matrix(km)
+    plaintext = ""
+    for i in range(0, len(ciphertext), 3):
+        block = ciphertext[i:i+3]
+        plaintext += hill_encryption(block, inverse_km)
+    return plaintext
 #Hill cipher main function
 def hill_cipher (message, hill_key):
     message = message.upper().replace(" ", "")
