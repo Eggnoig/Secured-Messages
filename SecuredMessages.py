@@ -30,7 +30,7 @@ import base64
 
 ALPHABET_SIZE = 26 #Used for Wrapping Shifts
 
-
+#
 def shift_character(character, shift):
     if "A" <= character <= "Z":
         base = ord("A")
@@ -150,6 +150,7 @@ def hill_decryption(ciphertext, hillKey):
         block = ciphertext[i:i+3]
         plaintext += hill_encryption(block, inverse_km)
     return plaintext
+
 #Hill cipher main function
 def hill_cipher (message, hill_key):
     message = message.upper().replace(" ", "")
@@ -213,9 +214,6 @@ def des_decryption(encoded_ciphertext: str, des_key: bytes) -> str:
     return plaintext.decode("utf-8")
 
 def hill_cipher_ui(message, hill_key, encode=True):
-    if not encode:
-        raise ValueError("Hill Cipher decode is not implemented yet.")
-
     hill_key = hill_key.upper().replace(" ", "")
 
     if len(hill_key) != 9:
@@ -224,7 +222,10 @@ def hill_cipher_ui(message, hill_key, encode=True):
     if not hill_key.isalpha():
         raise ValueError("Hill Cipher keyword must contain letters only.")
 
-    return hill_cipher(message, hill_key)
+    if encode:
+        return hill_cipher(message, hill_key)
+
+    return hill_decryption(message, hill_key)
 def des_cipher(message, key, encode=True):
     if DES is None:
         raise ValueError("DES support requires installing pycryptodome.")
