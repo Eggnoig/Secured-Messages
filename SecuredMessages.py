@@ -128,7 +128,7 @@ def modular_inverse(b, m):
 #Builds inverse of key matrix for decryption
 def invert_key_matrix(m):
     det = determinant(m) % ALPHABET_SIZE
-    det_invert = mod_inverse(det, ALPHABET_SIZE)
+    det_invert = modular_inverse(det, ALPHABET_SIZE)
     if det_invert is None:
         raise ValueError("Key matrix has no modular inverse.")
     #Start with empty 3 x 3 matrix
@@ -136,7 +136,7 @@ def invert_key_matrix(m):
     for i in range(3):
         for j in range(3):
             sign = (-1) ** (i +j)
-            inverse[j][i] = (det_invert * sign * minor(m, i, j)) % ALPHABET_SIZE
+            inverse[j][i] = (det_invert * sign * minor_matricies(m, i, j)) % ALPHABET_SIZE
     return inverse
 #Same as decrypt but with inverse key
 def hill_decryption(ciphertext, hillKey):
