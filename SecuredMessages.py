@@ -110,8 +110,8 @@ def hill_encryption(block, key_matrix):
     encryption = multiply(key_matrix, vector)
     return "".join(number_to_character(x) for x in encryption)
 #Decryption
-#matirx math for inverstion
-def minor(m, row, col):
+#matirx math for inversion
+def minor_matricies(m, row, col):
     sub_m = [
         [m[i][j] for j in range(3) if j != col]
         for i in range(3) if i != row
@@ -119,7 +119,7 @@ def minor(m, row, col):
     #2x2 determinant math
     return sub_m[0][0] * sub_m[1][1] - sub_m[0][1] * sub_m[1][0]
 #Finds a number that when multiplied by b gives 1 mod m, neeeded to undo the determinant in moduar math
-def mod_inverse(b, m):
+def modular_inverse(b, m):
     b = b % m
     for x in range(1, m):
         if (b * x) % m == 1:
@@ -128,7 +128,7 @@ def mod_inverse(b, m):
 #Builds inverse of key matrix for decryption
 def invert_key_matrix(m):
     det = determinant(m) % ALPHABET_SIZE
-    det_invert = mod_inverse(det, ALPHABET_SIZE)
+    det_invert = modular_inverse(det, ALPHABET_SIZE)
     if det_invert is None:
         raise ValueError("Key matrix has no modular inverse.")
     #Start with empty 3 x 3 matrix
@@ -136,7 +136,7 @@ def invert_key_matrix(m):
     for i in range(3):
         for j in range(3):
             sign = (-1) ** (i +j)
-            inverse[j][i] = (det_invert * sign * minor(m, i, j)) % ALPHABET_SIZE
+            inverse[j][i] = (det_invert * sign * minor_matricies(m, i, j)) % ALPHABET_SIZE
     return inverse
 #Same as decrypt but with inverse key
 def hill_decryption(ciphertext, hillKey):
